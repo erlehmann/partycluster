@@ -1,0 +1,6 @@
+Partycluster findet Parties, indem es ATOM-Feeds nach GeoRSS-Punkten durchsucht. So einfach ist das!
+
+$ ./partycluster.py feeds 5000000
+100% |####################################################################|
+Verdacht auf Party mit booldog, Michael Seemann und Matthias Bauer um Umkreis von 5000000 Metern um New Town, Berlin und Harvestehude (23:02, 18:54, 17:43).
+
