@@ -126,9 +126,9 @@ def partyPrint(cluster, threshold):
     names = [c.name for c in cluster]
     timestamps = [c.datetime.strftime('%H:%M') for c in cluster]
     placeNames = [getPlaceName(c.latitude, c.longitude) for c in cluster]
-    stdout.write('Verdacht auf Party mit %s um Umkreis von %s Metern um %s ' % (
+    stdout.write('Verdacht auf Party mit %s um Umkreis von %.1f Kilometern um %s ' % (
         ', '.join(names[:-1]) + ' und ' + names[-1],
-        int(maximumEventDistance(cluster)),
+        maximumEventDistance(cluster)/1000,
         ', '.join(placeNames[:-1]) + ' und ' + placeNames[-1]
     ))
     stdout.write('(%s).\n' % ', '.join(timestamps))
@@ -141,7 +141,7 @@ except IndexError:
     stderr.write("""Nutzung: partycluster.py [Feedliste] [Grenzwert]
 
 Feedliste ist eine Datei mit einem URL zu einem ATOM-Feed pro Zeile.
-Grenzwert ist die maximale Entfernung von Partyteilnehmern.
+Grenzwert ist die maximale Entfernung von Partyteilnehmern in Metern.
 """)
     exit(1)
 
