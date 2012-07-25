@@ -49,6 +49,21 @@ def eventDistance(a, b):
     point_b = Point(b.latitude, b.longitude)
     return distance.distance(point_a, point_b).m
 
+def maximumEventDistance(events):
+    """
+    Calculates the maximum spatial distance between many events.
+    """
+    maximum_distance = 0
+    for event_a in events:
+        for event_b in events:
+            if event_a == event_b:
+                continue
+            distance = eventDistance(event_a, event_b)
+            if distance > maximum_distance:
+                maximum_distance = distance
+    return maximum_distance
+        
+
 def getEvents(feed):
     """
     Creates events from an ATOM feed with GeoRSS points.
@@ -113,7 +128,7 @@ def partyPrint(cluster, threshold):
     placeNames = [getPlaceName(c.latitude, c.longitude) for c in cluster]
     stdout.write('Verdacht auf Party mit %s um Umkreis von %s Metern um %s ' % (
         ', '.join(names[:-1]) + ' und ' + names[-1],
-        threshold,
+        int(maximumEventDistance(cluster)),
         ', '.join(placeNames[:-1]) + ' und ' + placeNames[-1]
     ))
     stdout.write('(%s).\n' % ', '.join(timestamps))
