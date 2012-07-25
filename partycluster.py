@@ -19,6 +19,7 @@
 
 from sys import argv, stderr, stdout
 
+from werkzeug.contrib.cache import FileSystemCache
 from progressbar import ProgressBar
 from requests import get
 from cStringIO import StringIO
@@ -26,6 +27,8 @@ from xml.etree.cElementTree import dump, ElementTree
 from iso8601 import parse_date
 from geopy import Point, distance
 from cluster import HierarchicalClustering
+
+feed_cache = FileSystemCache('cache_dir', 3600)
 
 class Event():
     def __init__(self, name, uri, datetime, latitude, longitude):
@@ -98,7 +101,7 @@ def getPlaceName(latitude, longitude):
         (latitude, longitude)
     request = get(url)
     tree = ElementTree()
-    tree.parse(StringIO(request.text))
+    tree.parse(StringIO(request.text.encode('utf-8')))
     return tree.find('geoname/toponymName').text
 
 def partyPrint(cluster, threshold):
@@ -133,8 +136,14 @@ with open(filename, 'r') as feeds:
 
 with open(filename, 'r') as feeds:
     for line in feeds:
-        request = get(line.strip())
-        events = getEvents(StringIO(request.text))
+        feed_url = line.strip()
+        cached_content = feed_cache.get(feed_url)
+        if not cached_content:
+            request = get(feed_url)
+            events = getEvents(StringIO(request.text.encode('utf-8')))
+            feed_cache.set(feed_url, request.text.encode('utf-8'))
+        else:
+            events = getEvents(StringIO(cached_content))
         current_events = updateEvents(current_events, events)
         progress.update(progress.currval+1)
 
