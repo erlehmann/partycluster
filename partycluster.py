@@ -29,7 +29,8 @@ from geopy import Point, distance
 from math import sqrt
 from cluster import HierarchicalClustering
 
-feed_cache = FileSystemCache('cache_dir', 3600)
+feed_cache = FileSystemCache('feed_cache', 3600)
+name_cache = FileSystemCache('name_cache', 360000)
 
 class Event():
     def __init__(self, name, uri, datetime, latitude, longitude):
@@ -147,10 +148,15 @@ def updateEvents(current_events, new_events):
 def getPlaceName(latitude, longitude):
     url = "http://ws.geonames.org/findNearbyPlaceName?lat=%s&lng=%s" % \
         (latitude, longitude)
+    cached_name = name_cache.get(url)
+    if cached_name:
+        return cached_name
     request = get(url)
     tree = ElementTree()
     tree.parse(StringIO(request.text.encode('utf-8')))
-    return tree.find('geoname/toponymName').text
+    name = tree.find('geoname/toponymName').text
+    name_cache.set(url, name)
+    return name
 
 def partyPrint(cluster, threshold):
     """
