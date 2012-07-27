@@ -1,6 +1,5 @@
-Partycluster findet Parties, indem es ATOM-Feeds nach GeoRSS-Punkten durchsucht. So einfach ist das!
+Partycluster findet Parties, indem es ATOM-Feeds nach GeoRSS-Punkten durchsucht. Im verwendeten Raumzeitmodell gibt es zwei Raumdimensionen und eine Zeitdimension, die Lichtgeschwindigkeit beträgt 1 m/s.
 
-$ ./partycluster.py feeds 5000000
-100% |####################################################################|
-Verdacht auf Party mit booldog, Michael Seemann und Matthias Bauer um Umkreis von 5000000 Metern um New Town, Berlin und Harvestehude (23:02, 18:54, 17:43).
-
+$ % ./partycluster.py feeds 500000
+100% |########################################################################|
+Verdacht auf Party mit Caspar C. Mierau, Fiona, Max Winde, Michael Seemann und Matthias Bauer im Umkreis von 409.2 Kilometern nahe Westgroßefehn, Prenzlauer Berg, Kottbusser Tor, Friedrichshain und St. Pauli in einem Zeitraum von 26.07. 08:22 bis 26.07. 18:14.
