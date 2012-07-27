@@ -26,6 +26,7 @@ from cStringIO import StringIO
 from xml.etree.cElementTree import dump, ElementTree
 from iso8601 import parse_date
 from geopy import Point, distance
+from math import sqrt
 from cluster import HierarchicalClustering
 
 feed_cache = FileSystemCache('cache_dir', 3600)
@@ -41,7 +42,7 @@ class Event():
     def __repr__(self):
         return "%s <%s>, %s @ %s, %s" % (self.name, self.uri, self.datetime, self.latitude, self.longitude)
 
-def eventDistance(a, b):
+def spatialDistance(a, b):
     """
     Calculates the spatial distance between two events.
     """
@@ -49,7 +50,26 @@ def eventDistance(a, b):
     point_b = Point(b.latitude, b.longitude)
     return distance.distance(point_a, point_b).m
 
-def maximumEventDistance(events):
+def temporalDistance(a, b):
+    """
+    Calculaties the temporal distance between two events.
+    """
+    return abs((a.datetime - b.datetime).total_seconds())
+
+def spacelikeInterval(a, b):
+    """
+    Calculates space-like interval between two events in spacetime,
+    assuming light speed to be 1 meter per second (walking speed).
+    """
+    delta_r = spatialDistance(a, b)
+    delta_t = temporalDistance(a, b)
+    c = 1
+    try:
+        return sqrt(delta_r**2 - (c * delta_t**2))
+    except ValueError:  # event light cones do not intersect
+        return float('inf')
+
+def maximumSpatialDistance(events):
     """
     Calculates the maximum spatial distance between many events.
     """
@@ -58,11 +78,24 @@ def maximumEventDistance(events):
         for event_b in events:
             if event_a == event_b:
                 continue
-            distance = eventDistance(event_a, event_b)
+            distance = spatialDistance(event_a, event_b)
             if distance > maximum_distance:
                 maximum_distance = distance
     return maximum_distance
 
+def maximumTemporalDistance(events):
+    """
+    Calculates the maximum temporal distance between many events.
+    """
+    maximum_distance = 0
+    for event_a in events:
+        for event_b in events:
+            if event_a == event_b:
+                continue
+            distance = temporalDistance(event_a, event_b)
+            if distance > maximum_distance:
+                maximum_distance = distance
+    return maximum_distance
 
 def getEvents(feed):
     """
@@ -123,15 +156,22 @@ def partyPrint(cluster, threshold):
     """
     Prints a party announcement!
     """
+    cluster.sort(key=lambda e: e.datetime)
     names = [c.name for c in cluster]
-    timestamps = [c.datetime.strftime('%H:%M') for c in cluster]
-    placeNames = [getPlaceName(c.latitude, c.longitude) for c in cluster]
-    stdout.write('Verdacht auf Party mit %s um Umkreis von %.1f Kilometern um %s ' % (
+    timestamps = [c.datetime.strftime('%d.%m. %H:%M') for c in cluster]
+    placeNames = list(set([getPlaceName(c.latitude, c.longitude) for c in cluster]))
+    spatialExtent = maximumSpatialDistance(cluster)
+    temporalExtent = maximumTemporalDistance(cluster)
+
+    stdout.write('Verdacht auf Party mit %s im Umkreis von %.1f Kilometern nahe %s ' % (
         ', '.join(names[:-1]) + ' und ' + names[-1],
-        maximumEventDistance(cluster)/1000,
-        ', '.join(placeNames[:-1]) + ' und ' + placeNames[-1]
+        spatialExtent/1000,
+        ', '.join(placeNames[:-1]) + ' und ' + placeNames[-1],
     ))
-    stdout.write('(%s).\n' % ', '.join(timestamps))
+    stdout.write('in einem Zeitraum von %s bis %s.\n' % (
+        timestamps[0],
+        timestamps[1]
+    ))
 
 if __name__ == '__main__':
     try:
@@ -141,8 +181,9 @@ if __name__ == '__main__':
         stderr.write("""Nutzung: partycluster.py [Feedliste] [Grenzwert]
 
     Feedliste ist eine Datei mit einem URL zu einem ATOM-Feed pro Zeile.
-    Grenzwert ist die maximale Entfernung von Partyteilnehmern in Metern.
-    """)
+    Grenzwert ist die maximale Entfernung von Partyteilnehmern in Metern
+    unter der Annahme, dass die Lichtgeschwindigkeit 1 m/s beträgt.
+""")
         exit(1)
 
     current_events = {}
@@ -162,7 +203,7 @@ if __name__ == '__main__':
             current_events = updateEvents(current_events, events)
             progress.update(progress.currval+1)
 
-    clustering = HierarchicalClustering(current_events.values(), eventDistance)
+    clustering = HierarchicalClustering(current_events.values(), spacelikeInterval)
     clusters = clustering.getlevel(threshold)
 
     for cluster in clusters:
