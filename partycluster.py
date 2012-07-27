@@ -62,7 +62,7 @@ def maximumEventDistance(events):
             if distance > maximum_distance:
                 maximum_distance = distance
     return maximum_distance
-        
+
 
 def getEvents(feed):
     """
@@ -133,38 +133,38 @@ def partyPrint(cluster, threshold):
     ))
     stdout.write('(%s).\n' % ', '.join(timestamps))
 
+if __name__ == '__main__':
+    try:
+        filename = argv[1]
+        threshold = int(argv[2])
+    except IndexError:
+        stderr.write("""Nutzung: partycluster.py [Feedliste] [Grenzwert]
 
-try:
-    filename = argv[1]
-    threshold = int(argv[2])
-except IndexError:
-    stderr.write("""Nutzung: partycluster.py [Feedliste] [Grenzwert]
+    Feedliste ist eine Datei mit einem URL zu einem ATOM-Feed pro Zeile.
+    Grenzwert ist die maximale Entfernung von Partyteilnehmern in Metern.
+    """)
+        exit(1)
 
-Feedliste ist eine Datei mit einem URL zu einem ATOM-Feed pro Zeile.
-Grenzwert ist die maximale Entfernung von Partyteilnehmern in Metern.
-""")
-    exit(1)
+    current_events = {}
+    with open(filename, 'r') as feeds:
+        progress = ProgressBar(maxval=len(feeds.readlines()))
 
-current_events = {}
-with open(filename, 'r') as feeds:
-    progress = ProgressBar(maxval=len(feeds.readlines()))
+    with open(filename, 'r') as feeds:
+        for line in feeds:
+            feed_url = line.strip()
+            cached_content = feed_cache.get(feed_url)
+            if not cached_content:
+                request = get(feed_url)
+                events = getEvents(StringIO(request.text.encode('utf-8')))
+                feed_cache.set(feed_url, request.text.encode('utf-8'))
+            else:
+                events = getEvents(StringIO(cached_content))
+            current_events = updateEvents(current_events, events)
+            progress.update(progress.currval+1)
 
-with open(filename, 'r') as feeds:
-    for line in feeds:
-        feed_url = line.strip()
-        cached_content = feed_cache.get(feed_url)
-        if not cached_content:
-            request = get(feed_url)
-            events = getEvents(StringIO(request.text.encode('utf-8')))
-            feed_cache.set(feed_url, request.text.encode('utf-8'))
-        else:
-            events = getEvents(StringIO(cached_content))
-        current_events = updateEvents(current_events, events)
-        progress.update(progress.currval+1)
+    clustering = HierarchicalClustering(current_events.values(), eventDistance)
+    clusters = clustering.getlevel(threshold)
 
-clustering = HierarchicalClustering(current_events.values(), eventDistance)
-clusters = clustering.getlevel(threshold)
-
-for cluster in clusters:
-    if len(cluster) > 2:
-        partyPrint(cluster, threshold)
+    for cluster in clusters:
+        if len(cluster) > 2:
+            partyPrint(cluster, threshold)
