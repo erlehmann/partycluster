@@ -57,16 +57,16 @@ def temporalDistance(a, b):
     """
     return abs((a.datetime - b.datetime).total_seconds())
 
-def spacelikeInterval(a, b):
+def timelikeInterval(a, b):
     """
-    Calculates space-like interval between two events in spacetime,
+    Calculates time-like interval between two events in spacetime,
     assuming light speed to be 1 meter per second (walking speed).
     """
     delta_r = spatialDistance(a, b)
     delta_t = temporalDistance(a, b)
     c = 1
     try:
-        return sqrt(delta_r**2 - (c * delta_t**2))
+        return sqrt(delta_t**2 - (delta_r**2) / c)
     except ValueError:  # event light cones do not intersect
         return float('inf')
 
@@ -187,7 +187,7 @@ if __name__ == '__main__':
         stderr.write("""Nutzung: partycluster.py [Feedliste] [Grenzwert]
 
     Feedliste ist eine Datei mit einem URL zu einem ATOM-Feed pro Zeile.
-    Grenzwert ist die maximale Entfernung von Partyteilnehmern in Metern
+    Grenzwert ist die maximale Entfernung von Partyteilnehmern in Sekunden
     unter der Annahme, dass die Lichtgeschwindigkeit 1 m/s beträgt.
 """)
         exit(1)
@@ -209,7 +209,7 @@ if __name__ == '__main__':
             current_events = updateEvents(current_events, events)
             progress.update(progress.currval+1)
 
-    clustering = HierarchicalClustering(current_events.values(), spacelikeInterval)
+    clustering = HierarchicalClustering(current_events.values(), timelikeInterval)
     clusters = clustering.getlevel(threshold)
 
     for cluster in clusters:
